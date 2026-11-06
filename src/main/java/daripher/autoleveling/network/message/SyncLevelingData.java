@@ -1,55 +1,49 @@
 package daripher.autoleveling.network.message;
 
+import daripher.autoleveling.AutoLevelingMod;
 import daripher.autoleveling.event.MobsLevelingEvents;
-import java.util.function.Supplier;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public class SyncLevelingData {
-  private int entityId;
-  private int level;
+public record SyncLevelingData(int entityId, int level) implements CustomPacketPayload {
+  public static final Type<SyncLevelingData> TYPE =
+      new Type<>(ResourceLocation.fromNamespaceAndPath(AutoLevelingMod.MOD_ID, "sync_level"));
 
-  private SyncLevelingData() {}
+  public static final StreamCodec<ByteBuf, SyncLevelingData> STREAM_CODEC =
+      StreamCodec.composite(
+          ByteBufCodecs.VAR_INT,
+          SyncLevelingData::entityId,
+          ByteBufCodecs.VAR_INT,
+          SyncLevelingData::level,
+          SyncLevelingData::new);
 
   public SyncLevelingData(LivingEntity entity) {
-    entityId = entity.getId();
-    level = MobsLevelingEvents.getLevel(entity);
+    this(entity.getId(), MobsLevelingEvents.getLevel(entity));
   }
 
-  public static SyncLevelingData decode(FriendlyByteBuf buf) {
-    SyncLevelingData result = new SyncLevelingData();
-    result.entityId = buf.readInt();
-    result.level = buf.readInt();
-    return result;
+  @Override
+  public Type<? extends CustomPacketPayload> type() {
+    return TYPE;
   }
 
-  public static void receive(SyncLevelingData message, Supplier<NetworkEvent.Context> ctxSupplier) {
-    NetworkEvent.Context ctx = ctxSupplier.get();
-    ctx.setPacketHandled(true);
-    ctx.enqueueWork(
-        () -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> handlePacket(message, ctx)));
-  }
-
-  @OnlyIn(value = Dist.CLIENT)
-  private static void handlePacket(SyncLevelingData message, NetworkEvent.Context ctx) {
-    ctx.setPacketHandled(true);
-    Minecraft client = Minecraft.getInstance();
-    ClientLevel level = client.level;
-    if (level == null) return;
-    Entity entity = level.getEntity(message.entityId);
-    if (entity == null) return;
-    MobsLevelingEvents.setLevel((LivingEntity) entity, message.level);
-  }
-
-  public void encode(FriendlyByteBuf buf) {
-    buf.writeInt(entityId);
-    buf.writeInt(level);
+  public static void handle(SyncLevelingData message, IPayloadContext context) {
+    context.enqueueWork(
+        () -> {
+          Minecraft client = Minecraft.getInstance();
+          ClientLevel level = client.level;
+          if (level == null) return;
+          Entity entity = level.getEntity(message.entityId());
+          if (entity instanceof LivingEntity living) {
+            MobsLevelingEvents.setLevel(living, message.level());
+          }
+        });
   }
 }

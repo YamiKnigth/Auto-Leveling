@@ -3,13 +3,12 @@ package daripher.autoleveling.datagen;
 import daripher.autoleveling.AutoLevelingMod;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
-import net.minecraftforge.common.data.ExistingFileHelper;
-import net.minecraftforge.data.event.GatherDataEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
 
-@EventBusSubscriber(modid = AutoLevelingMod.MOD_ID, bus = Bus.MOD)
+@EventBusSubscriber(modid = AutoLevelingMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD)
 public class AutoLevelingDataGenerator {
   @SubscribeEvent
   public static void onGatherData(GatherDataEvent event) {
@@ -18,6 +17,7 @@ public class AutoLevelingDataGenerator {
     PackOutput packOutput = dataGenerator.getPackOutput();
     dataGenerator.addProvider(event.includeClient(), new AutoLevelingLanguageProvider(packOutput));
     dataGenerator.addProvider(
-        event.includeClient(), new AutoLevelingItemModelProvider(packOutput, existingFileHelper));
+        event.includeClient(),
+        new AutoLevelingItemModelProvider(packOutput, existingFileHelper));
   }
 }

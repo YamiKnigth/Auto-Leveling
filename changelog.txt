@@ -1,3 +1,8 @@
+1.21.1
+  NeoForge 1.21.1 port (based on 1.20 behavior)
+  Migrated networking to CustomPacketPayload
+  Migrated attribute modifiers to ResourceLocation IDs
+  Updated loot conditions to MapCodec
 1.14
   Added level bonus per deepnes config
   Created new attributes for mobs: projectile damage bonus and explosion damage bonus

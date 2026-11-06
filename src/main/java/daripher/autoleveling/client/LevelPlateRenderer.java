@@ -10,13 +10,12 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.ForgeHooksClient;
-import net.minecraftforge.client.event.RenderNameTagEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.ClientHooks;
+import net.neoforged.neoforge.client.event.RenderNameTagEvent;
+import net.neoforged.neoforge.common.util.TriState;
 import org.joml.Matrix4f;
 
 @EventBusSubscriber(modid = AutoLevelingMod.MOD_ID, value = Dist.CLIENT)
@@ -45,7 +44,7 @@ public class LevelPlateRenderer {
       textY -= 10;
     }
     renderLevel(level, textX, textY, pose, buffer, mode, light);
-    event.setResult(Event.Result.ALLOW);
+    event.setCanRender(TriState.TRUE);
     event.getPoseStack().popPose();
   }
 
@@ -55,12 +54,11 @@ public class LevelPlateRenderer {
   }
 
   private static boolean shouldRender(RenderNameTagEvent event) {
-    if (ModList.get().isLoaded("neat")) return false;
     if (!(event.getEntity() instanceof LivingEntity entity)) return false;
     if (!MobsLevelingEvents.shouldShowName(entity)) return false;
     Minecraft minecraft = Minecraft.getInstance();
     double distance = minecraft.getEntityRenderDispatcher().distanceToSqr(entity);
-    return ForgeHooksClient.isNameplateInRenderDistance(entity, distance);
+    return ClientHooks.isNameplateInRenderDistance(entity, distance);
   }
 
   public static void renderLevel(

@@ -2,6 +2,7 @@ package daripher.autoleveling.settings;
 
 import com.google.gson.JsonObject;
 import java.util.Map;
+import net.minecraft.core.Holder;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
@@ -13,7 +14,7 @@ public record EntityLevelingSettings(
     int randomLevelBonus,
     float levelPowerPerDistance,
     float levelPowerPerDeepness,
-    Map<Attribute, AttributeModifier> attributeModifiers)
+    Map<Holder<Attribute>, AttributeModifier> attributeModifiers)
     implements LevelingSettings {
 
   @Override

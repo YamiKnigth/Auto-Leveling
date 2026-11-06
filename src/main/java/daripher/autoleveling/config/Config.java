@@ -2,31 +2,37 @@ package daripher.autoleveling.config;
 
 import daripher.autoleveling.AutoLevelingMod;
 import daripher.autoleveling.client.LevelPlatePos;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Config {
   public static final Config.Common COMMON;
-  public static final ForgeConfigSpec COMMON_SPEC;
+  public static final ModConfigSpec COMMON_SPEC;
   public static final Config.Client CLIENT;
-  public static final ForgeConfigSpec CLIENT_SPEC;
-  private static final Map<Attribute, AttributeModifier> ATTRIBUTE_BONUSES = new HashMap<>();
+  public static final ModConfigSpec CLIENT_SPEC;
+  private static final Map<Holder<Attribute>, AttributeModifier> ATTRIBUTE_BONUSES = new HashMap<>();
+  public static final ResourceLocation BONUS_MODIFIER_ID =
+      ResourceLocation.fromNamespaceAndPath(AutoLevelingMod.MOD_ID, "level_bonus");
 
   static {
-    Pair<Config.Common, ForgeConfigSpec> commonSpec =
-        new ForgeConfigSpec.Builder().configure(Config.Common::new);
+    Pair<Config.Common, ModConfigSpec> commonSpec =
+        new ModConfigSpec.Builder().configure(Config.Common::new);
     COMMON_SPEC = commonSpec.getRight();
     COMMON = commonSpec.getLeft();
-    Pair<Config.Client, ForgeConfigSpec> clientSpec =
-        new ForgeConfigSpec.Builder().configure(Config.Client::new);
+    Pair<Config.Client, ModConfigSpec> clientSpec =
+        new ModConfigSpec.Builder().configure(Config.Client::new);
     CLIENT_SPEC = clientSpec.getRight();
     CLIENT = clientSpec.getLeft();
   }
@@ -50,7 +56,7 @@ public class Config {
     return false;
   }
 
-  public static Map<Attribute, AttributeModifier> getAttributeBonuses() {
+  public static Map<Holder<Attribute>, AttributeModifier> getAttributeBonuses() {
     if (ATTRIBUTE_BONUSES.isEmpty()) {
       for (List<Object> objects : Config.COMMON.attributesBonuses.get()) {
         readAttributeBonus(objects);
@@ -59,31 +65,30 @@ public class Config {
     return ATTRIBUTE_BONUSES;
   }
 
-  private static void readAttributeBonus(List<Object> attributeBonusConfig) {
-    ResourceLocation attributeId = new ResourceLocation((String) attributeBonusConfig.get(0));
-    Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(attributeId);
-    float attributeBonus = ((Double) attributeBonusConfig.get(1)).floatValue();
-    if (attribute == null) {
-      AutoLevelingMod.LOGGER.error("Attribute '" + attributeId + "' can not be found!");
-      return;
-    }
-    UUID uuid = UUID.fromString("6a102cb4-d735-4cb7-8ab2-3d383219a44e");
-    AttributeModifier.Operation operation = AttributeModifier.Operation.MULTIPLY_BASE;
-    AttributeModifier modifier =
-        new AttributeModifier(uuid, "AutoLeveling", attributeBonus, operation);
-    ATTRIBUTE_BONUSES.put(attribute, modifier);
+  public static void clearAttributeBonusCache() {
+    ATTRIBUTE_BONUSES.clear();
   }
 
-  public static void register() {
-    ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);
-    ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
+  private static void readAttributeBonus(List<Object> attributeBonusConfig) {
+    ResourceLocation attributeId = ResourceLocation.parse((String) attributeBonusConfig.get(0));
+    Optional<Holder.Reference<Attribute>> attribute =
+        BuiltInRegistries.ATTRIBUTE.getHolder(attributeId);
+    float attributeBonus = ((Double) attributeBonusConfig.get(1)).floatValue();
+    if (attribute.isEmpty()) {
+      AutoLevelingMod.LOGGER.error("Attribute '{}' can not be found!", attributeId);
+      return;
+    }
+    AttributeModifier modifier =
+        new AttributeModifier(
+            BONUS_MODIFIER_ID, attributeBonus, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+    ATTRIBUTE_BONUSES.put(attribute.get(), modifier);
   }
 
   public static class Common {
     public final ConfigValue<List<? extends List<Object>>> attributesBonuses;
-    public final ConfigValue<List<String>> blacklistedMobs;
-    public final ConfigValue<List<String>> whitelistedMobs;
-    public final ConfigValue<List<String>> blacklistedShownLevels;
+    public final ConfigValue<List<? extends String>> blacklistedMobs;
+    public final ConfigValue<List<? extends String>> whitelistedMobs;
+    public final ConfigValue<List<? extends String>> blacklistedShownLevels;
     public final ConfigValue<Integer> startingLevel;
     public final ConfigValue<Integer> maxLevel;
     public final ConfigValue<Integer> randomLevelBonus;
@@ -96,21 +101,26 @@ public class Config {
     public final ConfigValue<Boolean> alwaysShowLevel;
     public final ConfigValue<Boolean> showLevelWhenLookingAt;
 
-    public Common(ForgeConfigSpec.Builder builder) {
+    public Common(ModConfigSpec.Builder builder) {
       builder.push("Mobs");
       builder.comment("Example: [\"minecraft:zombie\", \"minecraft:skeleton\"]");
       blacklistedMobs =
-          builder.define("List of mobs that shouldn't be able to level up", new ArrayList<>());
+          builder.defineListAllowEmpty(
+              "List of mobs that shouldn't be able to level up", ArrayList::new, () -> "", o -> o instanceof String);
       builder.comment("If this list is not empty only these mobs will be able to level up");
       builder.comment("Example: [\"minecraft:zombie\", \"minecraft:skeleton\"]");
       whitelistedMobs =
-          builder.define("List of mobs that should be able to level up", new ArrayList<>());
+          builder.defineListAllowEmpty(
+              "List of mobs that should be able to level up", ArrayList::new, () -> "", o -> o instanceof String);
       alwaysShowLevel = builder.define("Always show mobs levels", false);
       showLevelWhenLookingAt = builder.define("Only show levels when you look at the mob", true);
       expBonus = builder.define("Bonus experience per level", 0.1D);
       blacklistedShownLevels =
-          builder.define(
-              "List of mobs that should have their levels always hidden", new ArrayList<>());
+          builder.defineListAllowEmpty(
+              "List of mobs that should have their levels always hidden",
+              ArrayList::new,
+              () -> "",
+              o -> o instanceof String);
       builder.pop();
       builder.push("Attributes");
       builder.comment("Contains a list of pairs of attributes and their bonuses per one level");
@@ -118,6 +128,7 @@ public class Config {
           builder.defineList(
               "Attributes bonuses per one level",
               Config::getDefaultAttributeBonuses,
+              () -> Arrays.asList("minecraft:generic.max_health", 0.1),
               Config::isValidAttributeBonus);
       builder.pop();
       builder.push("Default levelling settings");
@@ -148,7 +159,7 @@ public class Config {
     public final ConfigValue<Integer> levelTextShiftX;
     public final ConfigValue<Integer> levelTextShiftY;
 
-    public Client(ForgeConfigSpec.Builder builder) {
+    public Client(ModConfigSpec.Builder builder) {
       builder.push("Visuals");
       levelTextColor = builder.define("Level text color", "#1cff27", Config.Client::isColorString);
       levelTextPosition = builder.defineEnum("Level text position", LevelPlatePos.LEFT);

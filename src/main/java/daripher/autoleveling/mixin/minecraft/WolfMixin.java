@@ -18,19 +18,19 @@ public abstract class WolfMixin extends TamableAnimal {
   }
 
   @Redirect(
-      method = "setTame(Z)V",
+      method = "applyTamingSideEffects",
       at =
           @At(
               value = "INVOKE",
               target = "Lnet/minecraft/world/entity/animal/Wolf;setHealth(F)V",
               ordinal = 0))
-  private void setTame_inject1(Wolf entity, float health) {}
+  private void applyTamingSideEffects_skipHardcodedHeal(Wolf entity, float health) {}
 
-  @Inject(method = "setTame(Z)V", at = @At("HEAD"))
-  private void setTame_inject2(boolean tamed, CallbackInfo callbackInfo) {
-    if (tamed) {
+  @Inject(method = "applyTamingSideEffects", at = @At("HEAD"))
+  private void applyTamingSideEffects_preserveLeveledHealth(CallbackInfo callbackInfo) {
+    if (isTame()) {
       float healthPercentage = getHealth() / getMaxHealth();
-      Objects.requireNonNull(getAttribute(Attributes.MAX_HEALTH)).setBaseValue(20);
+      Objects.requireNonNull(getAttribute(Attributes.MAX_HEALTH)).setBaseValue(40.0);
       setHealth(getMaxHealth() * healthPercentage);
     }
   }

@@ -20,6 +20,8 @@ build
 # other
 eclipse
 run
+runs
 
-# Files from Forge MDK
+# Files from Forge/NeoForge MDK
 forge*changelog.txt
+.neoForge

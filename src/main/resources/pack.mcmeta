@@ -1,8 +1,6 @@
 {
   "pack": {
-    "description": {
-      "text": "${mod_id} resources"
-    },
-    "pack_format": 15
+    "description": "Auto Leveling resources",
+    "pack_format": 34
   }
 }

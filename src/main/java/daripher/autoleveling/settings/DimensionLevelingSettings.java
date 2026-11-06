@@ -3,6 +3,7 @@ package daripher.autoleveling.settings;
 import com.google.gson.JsonObject;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ public record DimensionLevelingSettings(
     float levelsPerDay,
     float levelPowerPerDistance,
     float levelPowerPerDeepness,
-    @Nullable Map<Attribute, AttributeModifier> attributeModifiers)
+    Map<Holder<Attribute>, AttributeModifier> attributeModifiers)
     implements LevelingSettings {
   public static DimensionLevelingSettings load(JsonObject jsonObject) {
     return new DimensionLevelingSettings(

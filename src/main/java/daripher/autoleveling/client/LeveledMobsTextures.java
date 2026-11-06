@@ -1,6 +1,7 @@
 package daripher.autoleveling.client;
 
 import com.mojang.logging.LogUtils;
+import daripher.autoleveling.AutoLevelingMod;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -8,19 +9,18 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import org.slf4j.Logger;
 
-@EventBusSubscriber(bus = Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = AutoLevelingMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public enum LeveledMobsTextures implements ResourceManagerReloadListener {
   INSTANCE;
 
@@ -68,7 +68,7 @@ public enum LeveledMobsTextures implements ResourceManagerReloadListener {
         Pattern.compile(TEXTURE_FILE_NAME_FORMAT).asPredicate();
     Stream<ResourceLocation> validTextures =
         textures.stream()
-            .filter(textureLocation -> textureNamePredicate.test(textureLocation.toString()));
+            .filter(textureLocation -> textureNamePredicate.test(getTextureFileName(textureLocation)));
     validTextures.forEach(this::saveTexture);
   }
 
@@ -77,8 +77,8 @@ public enum LeveledMobsTextures implements ResourceManagerReloadListener {
     String[] splitTextureName = textureName.split("_");
     String entityTypeName = splitTextureName[0];
     ResourceLocation entityTypeId =
-        new ResourceLocation(textureLocation.getNamespace(), entityTypeName);
-    EntityType<?> entityType = ForgeRegistries.ENTITY_TYPES.getValue(entityTypeId);
+        ResourceLocation.fromNamespaceAndPath(textureLocation.getNamespace(), entityTypeName);
+    EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(entityTypeId);
     if (entityType == null) {
       LOGGER.warn(
           "Can't read texture {}, unknown entity type {} specified", textureLocation, entityTypeId);
@@ -90,7 +90,8 @@ public enum LeveledMobsTextures implements ResourceManagerReloadListener {
   }
 
   public String getTextureFileName(ResourceLocation resourceLocation) {
-    return resourceLocation.getPath().replace(TEXTURES_FOLDER, "").replace(PNG_FILE_SUFFIX, "");
+    String path = resourceLocation.getPath().replace(TEXTURES_FOLDER + "/", "").replace(PNG_FILE_SUFFIX, "");
+    return path;
   }
 
   private boolean isPngImage(ResourceLocation resourceLocation) {

@@ -1,5 +1,6 @@
 package daripher.autoleveling.saveddata;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -12,7 +13,7 @@ public class GlobalLevelingData extends SavedData {
     return new GlobalLevelingData();
   }
 
-  private static GlobalLevelingData load(CompoundTag tag) {
+  private static GlobalLevelingData load(CompoundTag tag, HolderLookup.Provider registries) {
     GlobalLevelingData data = GlobalLevelingData.create();
     data.levelBonus = tag.getInt("LevelBonus");
     return data;
@@ -22,11 +23,13 @@ public class GlobalLevelingData extends SavedData {
     return server
         .overworld()
         .getDataStorage()
-        .computeIfAbsent(GlobalLevelingData::load, GlobalLevelingData::create, "global_leveling");
+        .computeIfAbsent(
+            new Factory<>(GlobalLevelingData::create, GlobalLevelingData::load), "global_leveling");
   }
 
   @Override
-  public @NotNull CompoundTag save(CompoundTag tag) {
+  public @NotNull CompoundTag save(
+      @NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
     tag.putInt("LevelBonus", levelBonus);
     return tag;
   }

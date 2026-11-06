@@ -2,14 +2,18 @@ package daripher.autoleveling.settings;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import daripher.autoleveling.AutoLevelingMod;
 import daripher.autoleveling.config.Config;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.Nullable;
 
 public interface LevelingSettings {
@@ -30,35 +34,43 @@ public interface LevelingSettings {
 
   float levelPowerPerDeepness();
 
-  Map<Attribute, AttributeModifier> attributeModifiers();
+  Map<Holder<Attribute>, AttributeModifier> attributeModifiers();
 
-  static Map<Attribute, AttributeModifier> readAttributeModifiers(JsonObject jsonObject) {
+  static Map<Holder<Attribute>, AttributeModifier> readAttributeModifiers(JsonObject jsonObject) {
     if (!jsonObject.has("attribute_modifiers")) {
       return Map.of();
     }
-    Map<Attribute, AttributeModifier> modifiers = new HashMap<>();
+    Map<Holder<Attribute>, AttributeModifier> modifiers = new HashMap<>();
     JsonArray jsonPairs = jsonObject.get("attribute_modifiers").getAsJsonArray();
     jsonPairs.forEach(
         jsonElement -> {
           JsonObject elementJson = jsonElement.getAsJsonObject();
-          Attribute attribute = readAttribute(elementJson);
+          Holder<Attribute> attribute = readAttribute(elementJson);
           AttributeModifier modifier = readAttributeModifier(elementJson);
-          modifiers.put(attribute, modifier);
+          if (attribute != null) {
+            modifiers.put(attribute, modifier);
+          }
         });
     return modifiers;
   }
 
-  static Attribute readAttribute(JsonObject jsonObject) {
-    ResourceLocation attributeId = new ResourceLocation(jsonObject.get("attribute").getAsString());
-    return ForgeRegistries.ATTRIBUTES.getValue(attributeId);
+  static @Nullable Holder<Attribute> readAttribute(JsonObject jsonObject) {
+    ResourceLocation attributeId =
+        ResourceLocation.parse(jsonObject.get("attribute").getAsString());
+    Optional<Holder.Reference<Attribute>> attribute =
+        BuiltInRegistries.ATTRIBUTE.getHolder(attributeId);
+    if (attribute.isEmpty()) {
+      AutoLevelingMod.LOGGER.error("Attribute '{}' can not be found!", attributeId);
+      return null;
+    }
+    return attribute.get();
   }
 
   static AttributeModifier readAttributeModifier(JsonObject jsonObject) {
-    UUID uuid = UUID.fromString("6a102cb4-d735-4cb7-8ab2-3d383219a44e");
     double amount = jsonObject.get("amount").getAsDouble();
     AttributeModifier.Operation operation =
-        AttributeModifier.Operation.fromValue(jsonObject.get("operation").getAsInt());
-    return new AttributeModifier(uuid, "AutoLeveling", amount, operation);
+        AttributeModifier.Operation.BY_ID.apply(jsonObject.get("operation").getAsInt());
+    return new AttributeModifier(Config.BONUS_MODIFIER_ID, amount, operation);
   }
 
   static @Nullable BlockPos readSpawnPosOverride(JsonObject jsonObject) {
@@ -71,7 +83,7 @@ public interface LevelingSettings {
   }
 
   static float readOptionalFloat(
-      JsonObject jsonObject, String name, ForgeConfigSpec.ConfigValue<Double> alternative) {
+      JsonObject jsonObject, String name, ModConfigSpec.ConfigValue<Double> alternative) {
     if (!jsonObject.has(name)) {
       return alternative.get().floatValue();
     }
