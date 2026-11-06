@@ -12,10 +12,13 @@ import daripher.autoleveling.init.AutoLevelingAttributes;
 import daripher.autoleveling.init.AutoLevelingItems;
 import daripher.autoleveling.init.AutoLevelingLootItemConditions;
 import daripher.autoleveling.init.AutoLevelingTabs;
+import daripher.autoleveling.integration.top.TopIntegration;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.InterModEnqueueEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import org.slf4j.Logger;
 
@@ -30,8 +33,15 @@ public class AutoLevelingMod {
     AutoLevelingAttributes.REGISTRY.register(modEventBus);
     AutoLevelingTabs.REGISTRY.register(modEventBus);
     modEventBus.addListener(this::attachMobAttributes);
+    modEventBus.addListener(this::enqueueInterModCommunication);
     modContainer.registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);
     modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
+  }
+
+  private void enqueueInterModCommunication(InterModEnqueueEvent event) {
+    if (ModList.get().isLoaded("theoneprobe")) {
+      TopIntegration.register();
+    }
   }
 
   private void attachMobAttributes(EntityAttributeModificationEvent event) {

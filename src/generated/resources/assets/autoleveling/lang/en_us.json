@@ -1,5 +1,9 @@
 {
+  "attribute.name.autoleveling.monster.explosion_damage_bonus": "Explosion Damage Bonus",
+  "attribute.name.autoleveling.monster.projectile_damage_bonus": "Projectile Damage Bonus",
   "autoleveling.level": "Lv.%s",
+  "autoleveling.tooltip.attribute": "%s: %s",
+  "autoleveling.tooltip.level": "Level: %d",
   "config.jade.plugin_autoleveling.level": "Level",
   "item.autoleveling.blacklist_tool": "Blacklist Tool",
   "item.autoleveling.blacklist_tool.added": "%s was added to blacklist",

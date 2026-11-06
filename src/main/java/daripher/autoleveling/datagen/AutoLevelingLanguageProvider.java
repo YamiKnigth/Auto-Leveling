@@ -33,6 +33,10 @@ public class AutoLevelingLanguageProvider extends LanguageProvider {
     add("jade.autoleveling.tooltip", "Level: %d");
     add("config.jade.plugin_autoleveling.level", "Level");
     add("autoleveling.level", "Lv.%s");
+    add("autoleveling.tooltip.level", "Level: %d");
+    add("autoleveling.tooltip.attribute", "%s: %s");
+    add("attribute.name.autoleveling.monster.projectile_damage_bonus", "Projectile Damage Bonus");
+    add("attribute.name.autoleveling.monster.explosion_damage_bonus", "Explosion Damage Bonus");
   }
 
   public void specialText(Item key, String type, String translation) {

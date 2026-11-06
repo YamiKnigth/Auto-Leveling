@@ -1,7 +1,7 @@
 package daripher.autoleveling.integration.jade;
 
 import daripher.autoleveling.AutoLevelingMod;
-import daripher.autoleveling.event.MobsLevelingEvents;
+import daripher.autoleveling.client.LeveledEntityInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -26,10 +26,11 @@ public enum LevelComponentProvider implements IEntityComponentProvider {
   public void appendTooltip(
       ITooltip tooltip, EntityAccessor entityAccessor, IPluginConfig pluginConfig) {
     Entity entity = entityAccessor.getEntity();
-    boolean showLevel =
-        MobsLevelingEvents.hasLevel(entity) && MobsLevelingEvents.shouldShowLevel(entity);
-    if (!showLevel) return;
-    int level = MobsLevelingEvents.getLevel((LivingEntity) entity) + 1;
-    tooltip.add(Component.translatable("jade.autoleveling.tooltip", level));
+    if (!(entity instanceof LivingEntity living)) {
+      return;
+    }
+    for (Component line : LeveledEntityInfo.buildLines(living)) {
+      tooltip.add(line);
+    }
   }
 }

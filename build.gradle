@@ -26,6 +26,10 @@ repositories {
             includeGroup 'maven.modrinth'
         }
     }
+    maven {
+        name = 'McJty'
+        url = 'https://maven.k-4u.nl'
+    }
 }
 
 base {
@@ -80,6 +84,7 @@ configurations {
 dependencies {
     // Optional soft integrations — present at compile time, not required at runtime
     compileOnly "maven.modrinth:jade:15.10.3+neoforge"
+    compileOnly "mcjty.theoneprobe:theoneprobe:${top_version}"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
