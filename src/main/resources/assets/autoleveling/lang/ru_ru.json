@@ -1,5 +1,9 @@
 {
+  "attribute.name.autoleveling.monster.explosion_damage_bonus": "Бонус урона от взрывов",
+  "attribute.name.autoleveling.monster.projectile_damage_bonus": "Бонус урона от снарядов",
   "autoleveling.level": "Ур.%s",
+  "autoleveling.tooltip.attribute": "%s: %s",
+  "autoleveling.tooltip.level": "Уровень: %d",
   "config.jade.plugin_autoleveling.level": "Уровень",
   "item.autoleveling.blacklist_tool": "Инструмент чёрного списка",
   "item.autoleveling.blacklist_tool.added": "%s добавлено в чёрный список",

@@ -1,3 +1,7 @@
+1.21.1a
+  Jade and The One Probe show level plus final values of Auto Leveling attributes
+  Skips health/armor lines already shown by those overlays
+  Shared tooltip helper keeps Jade and TOP behavior identical
 1.21.1
   Unofficial NeoForge 1.21.1 port/fork of Auto Leveling by Daripher
   Based on the Forge 1.20.1 behavior; original credit belongs to Daripher

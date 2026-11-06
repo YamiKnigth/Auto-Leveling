@@ -20,7 +20,8 @@ GNU General Public License version 3 (GPLv3). See LICENSE.txt.
 
 Optional integrations
 ---------------------
-Jade — optional soft dependency for level tooltips (client).
+Jade — optional soft dependency for level + attribute tooltips (client).
+The One Probe — optional soft dependency for the same tooltip lines.
 Neat — original Forge builds had a soft integration; not required here.
 
 Minecraft / NeoForge
