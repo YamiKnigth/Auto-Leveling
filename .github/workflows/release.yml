@@ -2,12 +2,14 @@ name: Release
 
 on:
   push:
+    branches:
+      - "1.21.1"
     tags:
       - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (must match mod_version), e.g. 1.21.1"
+        description: "Version to release (must match mod_version), e.g. 1.21.1a"
         required: true
 
 permissions:
@@ -25,33 +27,60 @@ jobs:
       - name: Determine version
         id: ver
         run: |
+          set -euo pipefail
+          MOD_VERSION="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
-          else
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
+          else
+            # Branch push (e.g. PR merge into 1.21.1): release current mod_version
+            VERSION="$MOD_VERSION"
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Releasing version $VERSION"
 
-      - name: Verify tag matches mod_version
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "mod_version=$MOD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version=$VERSION tag=$TAG (mod_version=$MOD_VERSION)"
+
+      - name: Skip if release already exists
+        id: skip
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          MOD_VERSION="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')"
-          if [ "$MOD_VERSION" != "${{ steps.ver.outputs.version }}" ]; then
-            echo "::error::Release version ${{ steps.ver.outputs.version }} does not match mod_version=$MOD_VERSION in gradle.properties"
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — skipping."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify version matches mod_version
+        if: steps.skip.outputs.should_release == 'true'
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.ver.outputs.version }}" != "${{ steps.ver.outputs.mod_version }}" ]; then
+            echo "::error::Release version ${{ steps.ver.outputs.version }} does not match mod_version=${{ steps.ver.outputs.mod_version }} in gradle.properties"
             exit 1
           fi
 
       - name: Set up JDK 21
+        if: steps.skip.outputs.should_release == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Setup Gradle
+        if: steps.skip.outputs.should_release == 'true'
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build
+        if: steps.skip.outputs.should_release == 'true'
         env:
           CI: "true"
         run: |
@@ -59,8 +88,10 @@ jobs:
           ./gradlew build --stacktrace
 
       - name: Resolve jar
+        if: steps.skip.outputs.should_release == 'true'
         id: jar
         run: |
+          set -euo pipefail
           JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' \
             ! -name '*-sources.jar' \
             ! -name '*-javadoc.jar' \
@@ -76,7 +107,9 @@ jobs:
           echo "Using jar: $JAR"
 
       - name: Extract changelog notes
+        if: steps.skip.outputs.should_release == 'true'
         run: |
+          set -euo pipefail
           VERSION="${{ steps.ver.outputs.version }}"
           python3 scripts/extract_changelog.py "$VERSION" > RELEASE_NOTES.md
           {
@@ -91,20 +124,8 @@ jobs:
           echo "----- RELEASE NOTES -----"
           cat RELEASE_NOTES.md
 
-      - name: Ensure release tag exists
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          TAG="${{ steps.ver.outputs.tag }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-          fi
-
       - name: Publish GitHub Release
+        if: steps.skip.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
@@ -113,3 +134,4 @@ jobs:
           files: ${{ steps.jar.outputs.path }}
           fail_on_unmatched_files: true
           generate_release_notes: false
+          make_latest: true
