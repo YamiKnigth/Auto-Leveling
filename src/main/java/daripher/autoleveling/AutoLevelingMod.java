@@ -1,3 +1,9 @@
+/*
+ * Auto Leveling — originally by Daripher.
+ * This file is part of an unofficial NeoForge 1.21.1 port/fork.
+ * Original: https://github.com/Daripher/Auto-Leveling
+ * Licensed under GNU GPL v3. See LICENSE.txt.
+ */
 package daripher.autoleveling;
 
 import com.mojang.logging.LogUtils;

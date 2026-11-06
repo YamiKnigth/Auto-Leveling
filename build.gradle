@@ -29,7 +29,8 @@ repositories {
 }
 
 base {
-    archivesName = "${mod_file_name}"
+    // Example: AutoLeveling-1.21.1-neoforge-1.21.1.jar
+    archivesName = "${mod_file_name}-${minecraft_version}-neoforge"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -93,6 +94,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_version            : mod_version,
             mod_authors            : mod_authors,
             mod_description        : mod_description,
+            mod_credits            : mod_credits,
     ]
     inputs.properties replaceProperties
     expand replaceProperties

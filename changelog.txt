@@ -1,8 +1,11 @@
 1.21.1
-  NeoForge 1.21.1 port (based on 1.20 behavior)
+  Unofficial NeoForge 1.21.1 port/fork of Auto Leveling by Daripher
+  Based on the Forge 1.20.1 behavior; original credit belongs to Daripher
+  Original repository: https://github.com/Daripher/Auto-Leveling
   Migrated networking to CustomPacketPayload
   Migrated attribute modifiers to ResourceLocation IDs
   Updated loot conditions to MapCodec
+  Clarified GPLv3 license and attribution in the repository
 1.14
   Added level bonus per deepnes config
   Created new attributes for mobs: projectile damage bonus and explosion damage bonus

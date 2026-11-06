@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (must match mod_version), e.g. 1.21.1"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing version $VERSION"
+
+      - name: Verify tag matches mod_version
+        run: |
+          MOD_VERSION="$(grep -E '^mod_version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')"
+          if [ "$MOD_VERSION" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::Release version ${{ steps.ver.outputs.version }} does not match mod_version=$MOD_VERSION in gradle.properties"
+            exit 1
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        env:
+          CI: "true"
+        run: |
+          chmod +x gradlew
+          ./gradlew build --stacktrace
+
+      - name: Resolve jar
+        id: jar
+        run: |
+          JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' \
+            ! -name '*-sources.jar' \
+            ! -name '*-javadoc.jar' \
+            ! -name '*-dev.jar' \
+            ! -name '*-slim.jar' | head -n 1)"
+          if [ -z "$JAR" ] || [ ! -s "$JAR" ]; then
+            echo "::error::Production jar not found in build/libs"
+            ls -la build/libs || true
+            exit 1
+          fi
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$JAR")" >> "$GITHUB_OUTPUT"
+          echo "Using jar: $JAR"
+
+      - name: Extract changelog notes
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          python3 scripts/extract_changelog.py "$VERSION" > RELEASE_NOTES.md
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "Unofficial NeoForge port/fork of Auto Leveling by Daripher."
+            echo "Original: https://github.com/Daripher/Auto-Leveling"
+            echo ""
+            echo "**License:** GNU GPL v3"
+          } >> RELEASE_NOTES.md
+          echo "----- RELEASE NOTES -----"
+          cat RELEASE_NOTES.md
+
+      - name: Ensure release tag exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Auto Leveling ${{ steps.ver.outputs.version }} (NeoForge)
+          body_path: RELEASE_NOTES.md
+          files: ${{ steps.jar.outputs.path }}
+          fail_on_unmatched_files: true
+          generate_release_notes: false
