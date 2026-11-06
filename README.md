@@ -23,17 +23,17 @@ The jar is written to `build/libs/AutoLeveling-1.21.1-neoforge-<mod_version>.jar
 
 ## Releasing (GitHub Releases)
 
-Releases are published by GitHub Actions when you push a version tag that matches `mod_version` in `gradle.properties`.
+Releases are published automatically by GitHub Actions when changes land on `1.21.1` (including merging a pull request), using the current `mod_version` from `gradle.properties`.
 
-1. Update `mod_version` and the matching section in `changelog.txt`
-2. Commit and push to `1.21.1`
-3. Create and push the tag:
+Flow:
 
-```bash
-git tag -a v1.21.1 -m "Release v1.21.1"
-git push origin v1.21.1
-```
+1. Bump `mod_version` and add a matching section in `changelog.txt`
+2. Merge / push to `1.21.1`
+3. If a GitHub Release for `v{mod_version}` does not exist yet, CI builds the jar and publishes it
 
-Or run the **Release** workflow manually from the Actions tab (`workflow_dispatch`) with the same version.
+You can still:
 
-The workflow builds the jar and creates a GitHub Release whose notes come from that version’s block in `changelog.txt`.
+- push a tag manually: `git tag -a v1.21.1a -m "..." && git push origin v1.21.1a`
+- run the **Release** workflow from the Actions tab (`workflow_dispatch`)
+
+If the release for that version already exists, the workflow skips (no duplicates). Notes come from that version’s block in `changelog.txt`.
