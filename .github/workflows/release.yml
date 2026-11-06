@@ -129,6 +129,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
+          # Pin tag to this workflow run's commit (not repo default branch).
+          # Default branch is still 1.19.2; without this, tags land on the wrong history
+          # and GitHub sorts the release by that old commit date.
+          target_commitish: ${{ github.sha }}
           name: Auto Leveling ${{ steps.ver.outputs.version }} (NeoForge)
           body_path: RELEASE_NOTES.md
           files: ${{ steps.jar.outputs.path }}
